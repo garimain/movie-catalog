@@ -34,7 +34,7 @@ public class CatalogService {
 		try {
 		
 			userMovieRating = 
-				restTemplate.getForObject("http://user-movie-rating-service/movie-ratings/"+userId, UserMovieRating.class);
+				restTemplate.getForObject("http://user-movie-rating-service/api/v1/movie-ratings/"+userId, UserMovieRating.class);
 			logger.info("Got the user movie ratings successfully");
 		
 		} catch (Exception ex) {
@@ -64,7 +64,7 @@ public class CatalogService {
 		try {
 		
 			movie = 
-				restTemplate.getForObject("http://movie-info-service/movies/"+movieId, Movie.class);
+				restTemplate.getForObject("http://movie-info-service/api/v1/movies/"+movieId, Movie.class);
 		
 		} catch (Exception ex) {
 			
