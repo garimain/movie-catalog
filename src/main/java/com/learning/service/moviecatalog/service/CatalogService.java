@@ -12,10 +12,10 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.stereotype.Service;
 
 import com.learning.service.moviecatalog.model.CatalogSearchBO;
-import com.learning.service.moviecatalog.model.Movie;
+import com.learning.service.moviecatalog.model.MovieBO;
 import com.learning.service.moviecatalog.model.MovieCatalog;
 import com.learning.service.moviecatalog.model.MovieRatingDetails;
-import com.learning.service.moviecatalog.model.UserMovieRating;
+import com.learning.service.moviecatalog.model.UserMovieRatingBO;
 import com.learning.service.moviecatalog.service.proxy.MovieInfoProxy;
 import com.learning.service.moviecatalog.service.proxy.UserMovieRatingServiceProxy;
 
@@ -39,8 +39,12 @@ public class CatalogService {
 		String userId = catalogSearchBO.getUserId();
 		movieCatalog.setUserId(userId);
 		
+		logger.info("CatalogService - Received request for user {}", userId);
+		
+		
+		
 		//Step 1 - invoke rating service to get the movie id and ratings for a given user id
-		UserMovieRating userMovieRating = userMovieRatingProxy.getMovieRatings(userId);
+		UserMovieRatingBO userMovieRating = userMovieRatingProxy.getMovieRatings(userId);
 		
 		//replace this with optional
 		
@@ -57,10 +61,10 @@ public class CatalogService {
 		
 	}
 	
-	private List<MovieRatingDetails> getMovieRatingDetails(UserMovieRating userMovieRating) {
+	private List<MovieRatingDetails> getMovieRatingDetails(UserMovieRatingBO userMovieRating) {
 		
 		return userMovieRating.getListMovie().stream().map(mr-> {
-			Movie movie = movieInfoProxy.getMovieDetails(mr.getMovieId());
+			MovieBO movie = movieInfoProxy.getMovieDetails(mr.getMovieId());
 			MovieRatingDetails movieRatingDetail = new MovieRatingDetails(movie.getName(), movie.getInformation(), mr.getRating());
 			return movieRatingDetail;
 		

@@ -1,8 +1,5 @@
 package com.learning.service.moviecatalog.service.proxy;
 
-import java.util.Arrays;
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,8 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import com.learning.service.moviecatalog.model.MovieRating;
-import com.learning.service.moviecatalog.model.UserMovieRating;
+import com.learning.service.moviecatalog.model.UserMovieRatingBO;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 
 @Component
@@ -30,24 +26,30 @@ public class UserMovieRatingServiceProxy {
 	private String movieRatingServiceUrl;
 	
 	@HystrixCommand(fallbackMethod = "getFallbackMovieRatings")
-	public UserMovieRating getMovieRatings(String userId) {
+	public UserMovieRatingBO getMovieRatings(String userId) {
 		
-		UserMovieRating userMovieRating = null;
+		UserMovieRatingBO userMovieRating = null;
 		
+		logger.info("UserMovieRatingServiceProxy - Received movie rating request for {}" + userId);
 		
 		try {
 			
 			UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(movieRatingServiceUrl);
 			
 			builder.queryParam("userId", userId);
-		
-			ResponseEntity<UserMovieRating> userMovieRatingResponse = restTemplate.getForEntity(builder.toUriString(), UserMovieRating.class);
+			
+			logger.info("UserMovieRatingServiceProxy - request being made at  {}" + builder.toUriString() );
+			
+			
+			ResponseEntity<UserMovieRatingBO> userMovieRatingResponse = restTemplate.getForEntity(builder.toUriString(), UserMovieRatingBO.class);
 			
 			if (userMovieRatingResponse.getStatusCode()== HttpStatus.OK) {
-				logger.info("Got the user movie ratings successfully");
+				logger.info("UserMovieRatingServiceProxy - Got the user movie ratings successfully {} " + userMovieRatingResponse.getBody());
 				userMovieRating = userMovieRatingResponse.getBody();
 			} else {
 				//TODO: Ideally this should not be null but some exception to indicate caller than service call has given error
+				logger.info("UserMovieRatingServiceProxy - Some error in getting user movie rating - http status is " + userMovieRatingResponse.getStatusCode());
+				
 				return null;
 			}
 			
@@ -55,7 +57,7 @@ public class UserMovieRatingServiceProxy {
 		
 		} catch (Exception ex) {
 			
-			logger.error("Exception occured while calling user movie rating service {} ", ex.getMessage());
+			logger.error("UserMovieRatingServiceProxy - Exception occured while calling user movie rating service {} ", ex.getMessage());
 			throw ex;
 			
 		}
@@ -64,10 +66,9 @@ public class UserMovieRatingServiceProxy {
 		
 	}
 	
-	private UserMovieRating getFallbackMovieRatings(String userId) {
+	private UserMovieRatingBO getFallbackMovieRatings(String userId) {
 		
-		List<MovieRating> movieRatings =  Arrays.asList(new MovieRating(userId, null, 0.0));
-		return new UserMovieRating(userId, movieRatings);
+		return null;
 		
 	}
 	

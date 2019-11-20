@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import com.learning.service.moviecatalog.model.Movie;
+import com.learning.service.moviecatalog.model.MovieBO;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 
 @Component
@@ -26,29 +26,33 @@ public class MovieInfoProxy {
 	private String movieInfoServiceUrl;
 	
 	@HystrixCommand(fallbackMethod = "fallbackMovieDetails")
-	public Movie getMovieDetails(String movieId) {
+	public MovieBO getMovieDetails(Integer movieId) {
 		
+		logger.info("MovieInfoProxy - Received request for movieId {}", movieId);
 		
-		Movie movie = null;
+		MovieBO movie = null;
 		
 		try {
-			StringBuffer uriBuffer = new StringBuffer(movieInfoServiceUrl).append("/").append(movieId);
+			StringBuffer uriBuffer = new StringBuffer(movieInfoServiceUrl).append("/").append(movieId.toString());
 			UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(uriBuffer.toString());
 			
+			logger.info("MovieInfoProxy - request being made at  {} ", builder.toUriString());
 			
-			ResponseEntity<Movie> movieResponse = restTemplate.getForEntity(builder.toUriString(), Movie.class);
+			ResponseEntity<MovieBO> movieResponse = restTemplate.getForEntity(builder.toUriString(), MovieBO.class);
 			
 			if (movieResponse.getStatusCode()== HttpStatus.OK) {
-				logger.info("Got the movie details successfully");
+				logger.info("MovieInfoProxy - Got the user movie ratings successfully {} " + movieResponse.getBody());
 				movie = movieResponse.getBody();
 			} else {
+				logger.info("MovieInfoProxy - Some error in getting user movie rating - http status is " + movieResponse.getStatusCode());
+				
 				//TODO: Ideally this should not be null but some exception to indicate caller than service call has given error
 				return null;
 			}
 		
 		} catch (Exception ex) {
 			
-			logger.error("Exception occured while calling user movie service {} ", ex.getMessage());
+			logger.error("MovieInfoProxy - Exception occured while calling user movie rating service {} ", ex.getMessage());
 			throw ex;
 			
 		}
@@ -57,9 +61,9 @@ public class MovieInfoProxy {
 		
 	}
 	
-	private Movie fallbackMovieDetails(String movieId) {
+	private MovieBO fallbackMovieDetails(Integer movieId) {
 		
-		return new Movie(movieId, "Name not available", "No Info Exists" );
+		return new MovieBO(movieId, "Name not available", "No Info Exists", "N/A" );
 		
 		
 	}
