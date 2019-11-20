@@ -2,86 +2,71 @@ package com.learning.service.moviecatalog.service;
 
 
 
-import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
+import com.learning.service.moviecatalog.model.CatalogSearchBO;
 import com.learning.service.moviecatalog.model.Movie;
-import com.learning.service.moviecatalog.model.MovieRating;
+import com.learning.service.moviecatalog.model.MovieCatalog;
+import com.learning.service.moviecatalog.model.MovieRatingDetails;
 import com.learning.service.moviecatalog.model.UserMovieRating;
-import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
+import com.learning.service.moviecatalog.service.proxy.MovieInfoProxy;
+import com.learning.service.moviecatalog.service.proxy.UserMovieRatingServiceProxy;
 
 @Service
+@RefreshScope
 public class CatalogService {
-	
-	@Autowired
-	private RestTemplate restTemplate;
 	
 	Logger logger = LoggerFactory.getLogger(CatalogService.class);
 	
+	@Autowired
+	private UserMovieRatingServiceProxy userMovieRatingProxy;
 	
-	@HystrixCommand(fallbackMethod = "getFallbackMovieRatings")
-	public UserMovieRating getMovieRatings(String userId) {
+	@Autowired
+	private MovieInfoProxy movieInfoProxy;
+	
+	
+	public MovieCatalog getMovieCatalog(CatalogSearchBO catalogSearchBO) {
 		
-		UserMovieRating userMovieRating = null;
+		List<MovieRatingDetails> movieRatingDetails  = null;
+		MovieCatalog movieCatalog = new MovieCatalog();
+		String userId = catalogSearchBO.getUserId();
+		movieCatalog.setUserId(userId);
 		
+		//Step 1 - invoke rating service to get the movie id and ratings for a given user id
+		UserMovieRating userMovieRating = userMovieRatingProxy.getMovieRatings(userId);
 		
-		try {
+		//replace this with optional
 		
-			userMovieRating = 
-				restTemplate.getForObject("http://user-movie-rating-service/api/v1/movie-ratings/"+userId, UserMovieRating.class);
-			logger.info("Got the user movie ratings successfully");
-		
-		} catch (Exception ex) {
+		if (userMovieRating != null && userMovieRating.getListMovie() != null) {
 			
-			logger.error("Exception occured while calling user movie rating service {} ", ex.getMessage());
-			throw ex;
+			movieRatingDetails = getMovieRatingDetails(userMovieRating);
 			
+			movieCatalog.setMovieRatingDetails(movieRatingDetails);
 		}
 		
-		return userMovieRating;
+		logger.info("Response processed for user {}", userId);
+		
+		return movieCatalog;
 		
 	}
 	
-	private UserMovieRating getFallbackMovieRatings(String userId) {
+	private List<MovieRatingDetails> getMovieRatingDetails(UserMovieRating userMovieRating) {
 		
-		List<MovieRating> movieRatings =  Arrays.asList(new MovieRating(userId, "100", 5));
-		return new UserMovieRating(userId, movieRatings);
+		return userMovieRating.getListMovie().stream().map(mr-> {
+			Movie movie = movieInfoProxy.getMovieDetails(mr.getMovieId());
+			MovieRatingDetails movieRatingDetail = new MovieRatingDetails(movie.getName(), movie.getInformation(), mr.getRating());
+			return movieRatingDetail;
 		
-	}
-	
-	@HystrixCommand(fallbackMethod = "fallbackMovieDetails")
-	public Movie getMovieDetails(String movieId) {
-		
-		
-		Movie movie = null;
-		
-		try {
-		
-			movie = 
-				restTemplate.getForObject("http://movie-info-service/api/v1/movies/"+movieId, Movie.class);
-		
-		} catch (Exception ex) {
-			
-			logger.error("Exception occured while calling user movie service {} ", ex.getMessage());
-			throw ex;
-			
-		}
-		
-		return movie;
+		}).collect(Collectors.toList());
 		
 	}
 	
-	private Movie fallbackMovieDetails(String movieId) {
-		
-		return new Movie(movieId, "Name not available", "No Info Exists" );
-		
-		
-	}
 	
 }
