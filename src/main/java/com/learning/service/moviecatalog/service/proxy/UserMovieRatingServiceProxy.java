@@ -30,7 +30,7 @@ public class UserMovieRatingServiceProxy {
 		
 		UserMovieRatingBO userMovieRating = null;
 		
-		logger.info("UserMovieRatingServiceProxy - Received movie rating request for {}" + userId);
+		logger.info("UserMovieRatingServiceProxy - Received movie rating request for {} " , userId);
 		
 		try {
 			
@@ -38,7 +38,7 @@ public class UserMovieRatingServiceProxy {
 			
 			builder.queryParam("userId", userId);
 			
-			logger.info("UserMovieRatingServiceProxy - request being made at  {}" + builder.toUriString() );
+			logger.info("UserMovieRatingServiceProxy - request being made at  {}" , builder.toUriString() );
 			
 			
 			ResponseEntity<UserMovieRatingBO> userMovieRatingResponse = restTemplate.getForEntity(builder.toUriString(), UserMovieRatingBO.class);
